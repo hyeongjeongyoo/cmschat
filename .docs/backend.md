@@ -19,6 +19,10 @@ egovframework.com              // 전자정부프레임워크 기본 구조
 │       ├── web                // ChatController.java, ChatSocketController.java
 │       └── service              // ChatService.java, ChatThread.java 등
 │
+│   └── dashboard              // **(신규)** 대시보드 기능 추가 위치
+│       └── web                // DashboardController.java
+│       └── service              // DashboardService.java
+│
 └── egovframework              // **[코어]** 공통/기반 모듈
     └── com
         ├── cmm                // 공통코드, 유틸리티 등
@@ -63,5 +67,18 @@ egovframework.com              // 전자정부프레임워크 기본 구조
 
 ## 5. API 및 WebSocket 명세
 
-_API 명세는 기존 문서와 동일하며, 모든 API는 위의 모듈 구조 안에서 각자의 컨트롤러에 구현됩니다._
-_WebSocket 명세 또한 기존 문서와 동일합니다._
+_API 명세는 `README.md`의 내용을 기반으로 하며, 모든 API는 위의 모듈 구조 안에서 각자의 컨트롤러에 구현됩니다._
+
+### 5.1. 신규 API: 대시보드
+
+- **Controller**: `DashboardController`
+- **`GET /api/dashboard/kpi`**: 대시보드 상단의 핵심 지표(KPI) 데이터를 조회합니다.
+  - **Response**: `{ "activeThreads": 128, "todayInquiries": 32, "avgResponseTime": 92, "diskUsage": 20 }`
+- **`GET /api/dashboard/inquiries-by-time`**: 시간대별 문의량 데이터를 조회합니다.
+  - **Response**: `[ { "time": "09:00", "count": 5 }, ... ]`
+- **`GET /api/dashboard/inquiries-by-cms`**: CMS별 활성 대화 비중 데이터를 조회합니다.
+  - **Response**: `[ { "cmsName": "CMS A", "percentage": 45 }, ... ]`
+
+### 5.2. 채팅 및 WebSocket
+
+_채팅 관련 API와 WebSocket 명세는 기존 문서와 동일합니다._
