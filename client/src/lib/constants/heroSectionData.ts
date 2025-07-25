@@ -8,24 +8,24 @@ export const heroSectionData: Record<
     breadcrumb: { label: string; url: string }[];
   }
 > = {
-  "/arpina/intro": {
-    header: "아르피나",
+  "/company/intro": {
+    header: "회사",
     title: "소개",
-    image: "/images/arpina/sub_visual.png",
+    image: "/images/company/sub_visual.png",
     breadcrumbBorderColor: "#2E3192",
     breadcrumb: [
       { label: "홈", url: "/" },
-      { label: "아르피나", url: "/arpina/intro" },
+      { label: "회사", url: "/company/intro" },
     ],
   },
-  "/arpina/location": {
-    header: "아르피나",
+  "/company/location": {
+    header: "회사",
     title: "소개",
-    image: "/images/arpina/sub_visual.png",
+    image: "/images/company/sub_visual.png",
     breadcrumbBorderColor: "#2E3192",
     breadcrumb: [
       { label: "홈", url: "/" },
-      { label: "아르피나", url: "/arpina/intro" },
+      { label: "회사", url: "/company/intro" },
     ],
   },
   "/rooms/bed/twin": {
@@ -430,7 +430,7 @@ export const heroSectionData: Record<
   },
   "/operation-guidelines": {
     header: "운영지침",
-    title: "아르피나 운영지침",
+    title: "회사 운영지침",
     image: "/images/bbs/sub_visual.png",
     breadcrumbBorderColor: "#353535",
     breadcrumb: [

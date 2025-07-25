@@ -1,9 +1,5 @@
 package cms.user.service.impl;
 
-import cms.enroll.domain.Enroll;
-import cms.enroll.repository.EnrollRepository;
-import cms.payment.domain.Payment;
-import cms.payment.repository.PaymentRepository;
 import cms.user.domain.User;
 import cms.user.domain.UserRoleType;
 import cms.user.domain.UserSpecification;
@@ -33,8 +29,6 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EnrollRepository enrollRepository;
-    private final PaymentRepository paymentRepository;
 
     @Override
     @Transactional
@@ -92,59 +86,14 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Page<UserEnrollmentHistoryDto> getUsers(String username, String name, String phone, String lessonTime,
             String payStatus, String searchKeyword, Pageable pageable) {
-
-        Page<User> userPage;
-        boolean useNativeQuery = (lessonTime != null && !lessonTime.trim().isEmpty())
-                || (payStatus != null && !payStatus.trim().isEmpty())
-                || (searchKeyword != null && !searchKeyword.trim().isEmpty());
-
-        if (useNativeQuery) {
-            // 복합 검색: 네이티브 쿼리를 사용하여 "최근" 이력 기반으로 정확히 필터링
-            userPage = userRepository.findUsersWithEnrollmentFilters(username, name, phone, lessonTime, payStatus,
-                    searchKeyword,
-                    pageable);
-        } else {
-            // 단순 검색: Specification을 사용하여 사용자 기본 정보만으로 필터링
-            Specification<User> spec = UserSpecification.search(username, name, phone, searchKeyword);
-            userPage = userRepository.findAll(spec, pageable);
-        }
-
-        List<String> validPayStatuses = Arrays.asList("PAID", "REFUNDED", "PARTIAL_REFUNDED");
-        long startIndex = pageable.getOffset();
+        Specification<User> spec = UserSpecification.search(username, name, phone, searchKeyword);
+        Page<User> userPage = userRepository.findAll(spec, pageable);
 
         List<UserEnrollmentHistoryDto> dtoList = new ArrayList<>();
+        long startIndex = pageable.getOffset();
         int indexCounter = 0;
 
-        // 2. 조회된 페이지의 사용자에 대해서만 수강이력 조회
         for (User user : userPage.getContent()) {
-            List<Enroll> enrollments = enrollRepository
-                    .findByUserUuidAndPayStatusInOrderByLesson_StartDateDesc(user.getUuid(), validPayStatuses);
-
-            List<EnrollmentDetailDto> historyDtos = enrollments.stream()
-                    .map(enroll -> {
-                        Payment payment = paymentRepository
-                                .findByEnroll_EnrollIdOrderByCreatedAtDesc(enroll.getEnrollId())
-                                .stream().findFirst().orElse(null);
-
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
-
-                        return EnrollmentDetailDto.builder()
-                                .enrollmentId(enroll.getEnrollId())
-                                .lessonTitle(enroll.getLesson().getTitle())
-                                .lessonMonth(enroll.getLesson().getStartDate().format(formatter))
-                                .lessonTime(enroll.getLesson().getLessonTime())
-                                .payStatus(enroll.getPayStatus())
-                                .paymentDate(payment != null ? payment.getCreatedAt() : enroll.getCreatedAt())
-                                .build();
-                    })
-                    .collect(Collectors.toList());
-
-            // 결제일을 기준으로 내림차순(최신순)으로 정렬합니다.
-            historyDtos.sort(Comparator.comparing(EnrollmentDetailDto::getPaymentDate,
-                    Comparator.nullsLast(Comparator.reverseOrder())));
-
-            EnrollmentDetailDto lastEnrollment = historyDtos.isEmpty() ? null : historyDtos.get(0);
-
             dtoList.add(UserEnrollmentHistoryDto.builder()
                     .index(startIndex + indexCounter + 1)
                     .uuid(user.getUuid())
@@ -152,8 +101,6 @@ public class UserServiceImpl implements UserService {
                     .name(user.getName())
                     .phone(user.getPhone())
                     .status(user.getStatus())
-                    .lastEnrollment(lastEnrollment)
-                    .enrollmentHistory(historyDtos)
                     .build());
             indexCounter++;
         }

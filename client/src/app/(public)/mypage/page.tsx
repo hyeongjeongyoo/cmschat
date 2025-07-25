@@ -1,11 +1,11 @@
+
 "use client"; // 클라이언트 컴포넌트로 전환
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Tabs,
   Container,
-  Flex,
   Heading,
   Input,
   Button,
@@ -13,18 +13,11 @@ import {
   VStack,
   HStack,
   Text,
-  Grid,
-  GridItem,
-  Badge,
-  Table,
   Fieldset,
   Field,
-  CloseButton,
-  Portal,
 } from "@chakra-ui/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { mypageApi, ProfileDto } from "@/lib/api/mypageApi";
-import { MypageEnrollDto, MypagePaymentDto } from "@/types/api";
 import { toaster } from "@/components/ui/toaster";
 import {
   PasswordInput,
@@ -32,32 +25,6 @@ import {
 } from "@/components/ui/password-input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CheckCircle2Icon, XCircleIcon } from "lucide-react";
-import { LessonDTO } from "@/types/swimming";
-import { LessonCard } from "@/components/swimming/LessonCard";
-import { swimmingPaymentService } from "@/lib/api/swimming"; // For renewal
-import { Dialog } from "@chakra-ui/react";
-import KISPGPaymentFrame, {
-  KISPGPaymentFrameRef,
-} from "@/components/payment/KISPGPaymentFrame";
-import { KISPGPaymentInitResponseDto } from "@/types/api";
-import { displayStatusConfig } from "@/lib/utils/statusUtils"; // Import the centralized config
-import { UiDisplayStatus } from "@/types/statusTypes";
-import { getMembershipLabel } from "@/lib/utils/displayUtils";
-
-// Helper to format date strings "YYYY-MM-DD" to "YY년MM월DD일"
-const formatDate = (dateString: string | undefined | null): string => {
-  if (!dateString) return "날짜 정보 없음";
-  try {
-    const parts = dateString.split("-");
-    if (parts.length !== 3) return dateString;
-    const year = parts[0].substring(2); // 2025 -> 25
-    const month = parts[1];
-    const day = parts[2];
-    return `${year}년${month}월${day}일`;
-  } catch (error) {
-    return dateString;
-  }
-};
 
 const initialPasswordCriteria = {
   minLength: false,
@@ -117,8 +84,6 @@ export default function MyPage() {
   const [newPwConfirm, setNewPwConfirm] = useState("");
   const [currentPw, setCurrentPw] = useState("");
   const [profilePw, setProfilePw] = useState("");
-  const [enrollments, setEnrollments] = useState<MypageEnrollDto[]>([]);
-  const [payments, setPayments] = useState<MypagePaymentDto[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -130,41 +95,23 @@ export default function MyPage() {
     useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(true);
 
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [cancelTargetEnrollId, setCancelTargetEnrollId] = useState<
-    number | null
-  >(null);
-
-  // Payment module state
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [currentPaymentData, setCurrentPaymentData] =
-    useState<KISPGPaymentInitResponseDto | null>(null);
-  const [currentPaymentEnrollId, setCurrentPaymentEnrollId] = useState<
-    number | null
-  >(null);
-  const paymentFrameRef = useRef<KISPGPaymentFrameRef>(null);
-
   // Tab management with URL sync
   const initialTabFromQuery = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState(() => {
-    if (initialTabFromQuery === "수영장_신청정보") {
-      return "수영장_신청정보";
+    if (initialTabFromQuery === "회원정보_수정") {
+      return "회원정보_수정";
     }
     return "회원정보_수정"; // Default tab
   });
 
-  // Data loading flags to prevent unnecessary reloads
   const [dataLoaded, setDataLoaded] = useState({
     profile: false,
-    enrollments: false,
-    payments: false,
   });
 
-  // Handle tab change with URL update
-  const handleTabChange = (newTab: string) => {
+  const handleTabChange = (details: { value: string }) => {
+    const newTab = details.value;
     setActiveTab(newTab);
 
-    // Update URL without page reload - remove tab parameter for default tab
     const newUrl = new URL(window.location.href);
     if (newTab === "회원정보_수정") {
       newUrl.searchParams.delete("tab");
@@ -172,119 +119,8 @@ export default function MyPage() {
       newUrl.searchParams.set("tab", newTab);
     }
 
-    // Use replaceState to avoid creating new history entries
     window.history.replaceState({}, "", newUrl.toString());
   };
-
-  async function fetchEnrollments(forceRefresh = false) {
-    if (dataLoaded.enrollments && !forceRefresh) {
-      return;
-    }
-
-    try {
-      const enrollmentsApiResponse = await mypageApi.getEnrollments();
-      if (
-        enrollmentsApiResponse &&
-        Array.isArray(enrollmentsApiResponse.content)
-      ) {
-        const rawEnrollments =
-          (enrollmentsApiResponse.content as MypageEnrollDto[]) || [];
-
-        // '활성' 상태를 명확히 정의합니다 (취소/환불된 상태 제외).
-        const activeStatuses = ["PAID", "PAYMENT_PENDING"];
-
-        // 활성 신청 내역에 대해 "강습ID_시작일" 형태의 고유 키를 생성합니다.
-        // 이를 통해 다른 기간의 동일 강습을 구분할 수 있습니다.
-        const activeEnrollmentKeys = new Set(
-          rawEnrollments
-            .filter(
-              (e) => !e.renewal && activeStatuses.includes(e.status || "")
-            )
-            .map((e) => `${e.lesson.lessonId}_${e.lesson.startDate}`)
-        );
-
-        // 재수강 카드와 활성 신청 카드를 비교하여 필터링합니다.
-        const filteredEnrollments = rawEnrollments.filter((e) => {
-          // 재수강 카드의 경우,
-          if (e.renewal) {
-            // 동일한 기간의 활성 신청 내역이 존재하면 숨깁니다.
-            const renewalKey = `${e.lesson.lessonId}_${e.lesson.startDate}`;
-            return !activeEnrollmentKeys.has(renewalKey);
-          }
-          // 재수강 카드가 아니면 항상 표시합니다.
-          return true;
-        });
-
-        // 정렬: 1. 취소 가능(PAID) 우선, 2. 최신 강습 순
-        const sortedEnrollments = filteredEnrollments.sort((a, b) => {
-          const isACancellable = a.status === "PAID";
-          const isBCancellable = b.status === "PAID";
-
-          // 취소 가능 여부로 정렬 (가능한 것이 위로)
-          if (isACancellable !== isBCancellable) {
-            return isACancellable ? -1 : 1;
-          }
-
-          // 강습 시작일로 정렬 (최신순)
-          const dateA = new Date(a.lesson.startDate).getTime();
-          const dateB = new Date(b.lesson.startDate).getTime();
-          return dateB - dateA;
-        });
-
-        setEnrollments(sortedEnrollments);
-        setDataLoaded((prev) => ({ ...prev, enrollments: true }));
-      } else {
-        console.warn(
-          "⚠️ Enrollments API response is not in the expected format or content is missing/not an array:",
-          enrollmentsApiResponse
-        );
-        setEnrollments([]);
-      }
-    } catch (error) {
-      console.error("❌ [Mypage] Failed to load enrollments:", error);
-      toaster.create({
-        title: "오류",
-        description: "수강 신청 정보를 불러오는데 실패했습니다.",
-        type: "error",
-      });
-      setEnrollments([]);
-    }
-  }
-
-  // Separate function for fetching payments
-  async function fetchPayments() {
-    if (dataLoaded.payments) {
-      return;
-    }
-
-    try {
-      const paymentsApiResponse = await mypageApi.getPayments();
-
-      // API returns paginated response with content array
-      if (
-        paymentsApiResponse &&
-        paymentsApiResponse.content &&
-        Array.isArray(paymentsApiResponse.content)
-      ) {
-        setPayments(paymentsApiResponse.content as MypagePaymentDto[]);
-        setDataLoaded((prev) => ({ ...prev, payments: true }));
-      } else {
-        console.warn(
-          "Payments API response is not in expected format:",
-          paymentsApiResponse
-        );
-        setPayments([]);
-      }
-    } catch (error) {
-      console.error("[Mypage] Failed to load payments:", error);
-      toaster.create({
-        title: "오류",
-        description: "결제 정보를 불러오는데 실패했습니다.",
-        type: "error",
-      });
-      setPayments([]);
-    }
-  }
 
   useEffect(() => {
     let localUserData: any = null;
@@ -391,62 +227,12 @@ export default function MyPage() {
           }
         }
 
-        // Mark profile data as loaded
         setDataLoaded((prev) => ({ ...prev, profile: true }));
-
-        // Only load enrollments if we're starting on the enrollment tab
-        if (initialTabFromQuery === "수영장_신청정보") {
-          await fetchEnrollments();
-        }
-
-        // Only load payments if we're starting on the payment tab
-        if (initialTabFromQuery === "수영장_결제정보") {
-          await fetchPayments();
-        }
       } catch (error) {
         console.error(
           "[Mypage] Failed to load user data (in catch block):",
           error
         );
-
-        if (
-          profile &&
-          profile.name &&
-          profile.name !== (localUserData?.name || localUserData?.username)
-        ) {
-          setEnrollments([]);
-          setPayments([]);
-        } else if (localUserData && (!profile || !profile.userId)) {
-          setProfile((prevProfile) => {
-            if (prevProfile) {
-              return {
-                ...prevProfile,
-                userId: localUserData.username || prevProfile.userId,
-                name: localUserData.name || prevProfile.name,
-                email: localUserData.email || prevProfile.email,
-                phone: localUserData.phone || prevProfile.phone || "",
-                address: localUserData.address || prevProfile.address || "",
-                carNo: localUserData.carNo || prevProfile.carNo || "",
-                gender: prevProfile.gender,
-              };
-            } else {
-              return {
-                id: 0, // Placeholder
-                userId: localUserData.username || "",
-                name: localUserData.name || "",
-                email: localUserData.email || "",
-                phone: localUserData.phone || "",
-                address: localUserData.address || "",
-                carNo: localUserData.carNo || "",
-              } as ProfileDto;
-            }
-          });
-          setEnrollments([]);
-          setPayments([]);
-        } else if (!profile || !profile.userId) {
-          setEnrollments([]);
-          setPayments([]);
-        }
 
         toaster.create({
           title: "데이터 로딩 중 오류 발생",
@@ -462,22 +248,18 @@ export default function MyPage() {
     }
 
     fetchUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]); // Consider dependencies carefully
+  }, []);
 
-  // Update activeTab if query param changes after initial load (optional, but good practice)
   useEffect(() => {
     const tabFromQuery = searchParams.get("tab");
-    if (tabFromQuery === "수영장_신청정보" && activeTab !== "수영장_신청정보") {
-      setActiveTab("수영장_신청정보");
+    if (tabFromQuery === "회원정보_수정" && activeTab !== "회원정보_수정") {
+      setActiveTab("회원정보_수정");
+    } else if (
+      tabFromQuery === "비밀번호_변경" &&
+      activeTab !== "비밀번호_변경"
+    ) {
+      setActiveTab("비밀번호_변경");
     }
-    // Add other conditions if other tabs can also be set via query params
-    // else if (tabFromQuery === "비밀번호_변경" && activeTab !== "비밀번호_변경") {
-    //   setActiveTab("비밀번호_변경");
-    // }
-    // else if (tabFromQuery === "수영장_결제정보" && activeTab !== "수영장_결제정보") {
-    //   setActiveTab("수영장_결제정보");
-    // }
   }, [searchParams, activeTab]);
 
   const validateNewPasswordCriteria = (password: string) => {
@@ -643,150 +425,6 @@ export default function MyPage() {
     [passwordCriteriaMet]
   );
 
-  // Event Handlers for LessonCardActions
-  const handleGoToPayment = async (enrollId: number) => {
-    try {
-      setIsLoading(true);
-
-      // enrollId로 KISPG 결제 초기화 API 호출
-      const paymentInitData = await swimmingPaymentService.initKISPGPayment(
-        enrollId
-      );
-
-      // 결제 데이터 설정 및 결제창 표시
-      setCurrentPaymentData(paymentInitData);
-      setCurrentPaymentEnrollId(enrollId);
-
-      // 잠시 후 결제창 트리거 (DOM이 준비된 후)
-      setTimeout(() => {
-        if (paymentFrameRef.current) {
-          paymentFrameRef.current.triggerPayment();
-        }
-      }, 100);
-    } catch (error) {
-      console.error("결제 초기화 실패:", error);
-      toaster.create({
-        title: "결제 초기화 실패",
-        description: getApiErrorMessage(
-          error,
-          "결제를 시작할 수 없습니다. 다시 시도해주세요."
-        ),
-        type: "error",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRequestCancel = async (enrollId: number) => {
-    if (!enrollId) {
-      toaster.create({
-        title: "경고",
-        description: "잘못된 강습 정보입니다.",
-        type: "warning",
-      });
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      await mypageApi.cancelEnrollment(enrollId);
-      toaster.create({
-        title: "성공",
-        description: "취소 요청이 접수되었습니다.",
-        type: "success",
-      });
-      await refreshEnrollmentData();
-    } catch (error: any) {
-      console.error("[Mypage] Failed to request cancellation:", error);
-      toaster.create({
-        title: "오류",
-        description: `취소 요청 중 오류가 발생했습니다: ${getApiErrorMessage(
-          error,
-          ""
-        )}`,
-        type: "error",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const executeDialogCancellation = async () => {
-    if (cancelTargetEnrollId === null) return;
-    try {
-      setIsLoading(true);
-      await mypageApi.cancelEnrollment(cancelTargetEnrollId);
-      toaster.create({
-        title: "성공",
-        description: "취소 요청이 접수되었습니다. 관리자 확인 후 처리됩니다.",
-        type: "success",
-      });
-      await fetchEnrollments();
-    } catch (error: any) {
-      console.error("[Mypage] Failed to request cancellation:", error);
-      toaster.create({
-        title: "오류",
-        description: `취소 요청 중 오류가 발생했습니다: ${getApiErrorMessage(
-          error,
-          ""
-        )}`,
-        type: "error",
-      });
-    } finally {
-      setIsLoading(false);
-      setIsCancelDialogOpen(false);
-      setCancelTargetEnrollId(null);
-    }
-  };
-
-  const handleRenewLesson = async (enrollment: MypageEnrollDto) => {
-    if (!enrollment || !enrollment.lesson) {
-      toaster.create({
-        title: "오류",
-        description: "재수강할 강습 정보가 없습니다.",
-        type: "error",
-      });
-      return;
-    }
-
-    const { lesson } = enrollment;
-
-    // Logic is copied from LessonCard.tsx's handleApplyClick
-    toaster.create({
-      title: "재수강 신청",
-      description: "신청 정보 확인 페이지로 이동합니다.",
-      type: "info",
-      duration: 1500,
-    });
-
-    const queryParams = new URLSearchParams({
-      lessonId: lesson.lessonId.toString(),
-      lessonTitle: lesson.title,
-      lessonPrice: lesson.price.toString(),
-      lessonStartDate: lesson.startDate,
-      lessonEndDate: lesson.endDate,
-      lessonTime: lesson.timeSlot || "",
-      lessonDays: lesson.days || "",
-      lessonTimePrefix: lesson.timePrefix || "",
-      isRenewal: "true", // Add a flag to indicate this is a renewal
-    });
-
-    router.push(`/application/confirm?${queryParams.toString()}`);
-  };
-
-  // Function to refresh enrollment data (useful after payment completion)
-  const refreshEnrollmentData = async () => {
-    setDataLoaded((prev) => ({ ...prev, enrollments: false }));
-    await fetchEnrollments(true); // Force refresh
-  };
-
-  // Function to refresh payment data
-  const refreshPaymentData = async () => {
-    setDataLoaded((prev) => ({ ...prev, payments: false }));
-    await fetchPayments();
-  };
-
   return (
     <Container maxW="1600px" py={8}>
       <Heading as="h1" mb={8} fontSize="3xl">
@@ -795,35 +433,13 @@ export default function MyPage() {
 
       <Tabs.Root
         value={activeTab}
-        onValueChange={(details) => handleTabChange(details.value)}
+        onValueChange={handleTabChange}
         variant="line"
         colorPalette="blue"
       >
         <Tabs.List mb={6}>
           <Tabs.Trigger value="회원정보_수정">회원정보 수정</Tabs.Trigger>
           <Tabs.Trigger value="비밀번호_변경">비밀번호 변경</Tabs.Trigger>
-          <Tabs.Trigger
-            value="수영장_신청정보"
-            onClick={() => {
-              // Load enrollments data when tab is clicked
-              if (!dataLoaded.enrollments) {
-                fetchEnrollments();
-              }
-            }}
-          >
-            수영장 신청정보
-          </Tabs.Trigger>
-          <Tabs.Trigger
-            value="수영장_결제정보"
-            onClick={() => {
-              // Load payments data when tab is clicked
-              if (!dataLoaded.payments) {
-                fetchPayments();
-              }
-            }}
-          >
-            수영장 결제정보
-          </Tabs.Trigger>
         </Tabs.List>
 
         <Tabs.Content value="회원정보_수정">
@@ -1029,332 +645,7 @@ export default function MyPage() {
             </Fieldset.Root>
           </Box>
         </Tabs.Content>
-
-        <Tabs.Content value="수영장_신청정보">
-          {isLoading ? (
-            <Box textAlign="center" p={8}>
-              <Text>로딩 중...</Text>
-            </Box>
-          ) : enrollments && enrollments.length > 0 ? (
-            <Grid templateColumns="repeat(auto-fill, minmax(360px, 1fr))">
-              {enrollments.map((enroll) => {
-                // Prepare data for LessonCard from enroll.lesson
-                const lessonDataForCard: LessonDTO = {
-                  id: enroll.lesson.lessonId,
-                  title: enroll.lesson.title,
-                  name: enroll.lesson.name, // Make sure this field exists or is mapped
-                  startDate: formatDate(enroll.lesson.startDate), // Use formatDate
-                  endDate: formatDate(enroll.lesson.endDate), // Use formatDate
-                  timeSlot: enroll.lesson.timeSlot, // from enroll.lesson
-                  timePrefix: enroll.lesson.timePrefix, // from enroll.lesson
-                  days: enroll.lesson.days, // from enroll.lesson
-                  capacity: enroll.lesson.capacity, // from enroll.lesson
-                  remaining: enroll.lesson.remaining, // from enroll.lesson
-                  price: enroll.lesson.price, // from enroll.lesson
-                  reservationId: enroll.lesson.reservationId, // from enroll.lesson
-                  receiptId: enroll.lesson.receiptId, // from enroll.lesson
-                  instructor: enroll.lesson.instructor, // from enroll.lesson
-                  location: enroll.lesson.location, // from enroll.lesson
-                };
-
-                return (
-                  <LessonCard
-                    key={enroll.enrollId ?? `renewal-${enroll.lesson.lessonId}`}
-                    lesson={lessonDataForCard}
-                    context="mypage" // Set context to "mypage"
-                    enrollment={enroll} // Pass the full enrollment object
-                    onGoToPayment={handleGoToPayment}
-                    onRequestCancel={handleRequestCancel}
-                    onRenewLesson={handleRenewLesson}
-                  />
-                );
-              })}
-            </Grid>
-          ) : (
-            <Box textAlign="center" p={8}>
-              <Text>신청한 수영장 강습 정보가 없습니다.</Text>
-            </Box>
-          )}
-          <Box textAlign="center" p={8}>
-            <Button
-              colorPalette="orange"
-              size="md"
-              px={8}
-              onClick={() => router.push("/sports/swimming/lesson")}
-            >
-              강습 목록으로 이동
-            </Button>
-          </Box>
-        </Tabs.Content>
-
-        <Tabs.Content value="수영장_결제정보">
-          {isLoading ? (
-            <Box textAlign="center" p={8}>
-              <Text>로딩 중...</Text>
-            </Box>
-          ) : payments && payments.length > 0 ? (
-            <Box py={4}>
-              {/* 카드 형태로 결제 정보 표시 - 더 많은 정보를 깔끔하게 보여주기 위해 */}
-              <Grid
-                templateColumns="repeat(auto-fill, minmax(500px, 1fr))"
-                gap={6}
-              >
-                {payments.map((payment) => {
-                  // Determine badge color and label using the centralized config
-                  const statusInfo =
-                    displayStatusConfig[payment.status as UiDisplayStatus] ||
-                    displayStatusConfig["FAILED"]; // Fallback to a default
-
-                  return (
-                    <Box
-                      key={payment.paymentId}
-                      p={6}
-                      borderWidth="1px"
-                      borderRadius="lg"
-                      bg="white"
-                      shadow="sm"
-                      _hover={{ shadow: "md" }}
-                    >
-                      <VStack align="stretch" gap={4}>
-                        {/* 헤더: 결제 상태와 금액 */}
-                        <Flex justify="space-between" align="center">
-                          <Badge
-                            colorPalette={statusInfo.colorPalette}
-                            variant={statusInfo.badgeVariant}
-                            size="lg"
-                          >
-                            {statusInfo.label}
-                          </Badge>
-                          <Text
-                            fontSize="xl"
-                            fontWeight="bold"
-                            color="blue.600"
-                          >
-                            {payment.finalAmount.toLocaleString()}원
-                          </Text>
-                        </Flex>
-
-                        {/* 강습 정보 */}
-                        <Box>
-                          <Text fontSize="lg" fontWeight="semibold" mb={2}>
-                            {payment.lessonTitle}
-                          </Text>
-                          <VStack align="stretch" gap={1} fontSize="sm">
-                            <Flex justify="space-between">
-                              <Text color="gray.600">강습 기간:</Text>
-                              <Text>
-                                {formatDate(payment.lessonStartDate)} ~{" "}
-                                {formatDate(payment.lessonEndDate)}
-                              </Text>
-                            </Flex>
-                            <Flex justify="space-between">
-                              <Text color="gray.600">강습 시간:</Text>
-                              <Text>{payment.lessonTime}</Text>
-                            </Flex>
-                            <Flex justify="space-between">
-                              <Text color="gray.600">장소:</Text>
-                              <Text>{payment.locationName}</Text>
-                            </Flex>
-                          </VStack>
-                        </Box>
-
-                        {/* 결제 상세 정보 */}
-                        <Box>
-                          <Text fontSize="md" fontWeight="semibold" mb={2}>
-                            결제 내역
-                          </Text>
-                          <VStack align="stretch" gap={1} fontSize="sm">
-                            <Flex justify="space-between">
-                              <Text color="gray.600">강습비:</Text>
-                              <Text>
-                                {payment.lessonPrice.toLocaleString()}원
-                              </Text>
-                            </Flex>
-                            {payment.usesLocker && (
-                              <Flex justify="space-between">
-                                <Text color="gray.600">사물함비:</Text>
-                                <Text>
-                                  {payment.lockerFee.toLocaleString()}원
-                                </Text>
-                              </Flex>
-                            )}
-                            {payment.discountType &&
-                              payment.discountPercentage > 0 && (
-                                <Flex justify="space-between">
-                                  <Text color="gray.600">할인:</Text>
-                                  <Text color="red.500">
-                                    -{payment.discountPercentage}% (
-                                    {payment.discountType})
-                                  </Text>
-                                </Flex>
-                              )}
-                            <Box
-                              borderTop="1px"
-                              borderColor="gray.200"
-                              pt={2}
-                              mt={2}
-                            >
-                              <Flex justify="space-between" fontWeight="bold">
-                                <Text>최종 결제 금액:</Text>
-                                <Text color="blue.600">
-                                  {payment.finalAmount.toLocaleString()}원
-                                </Text>
-                              </Flex>
-                            </Box>
-                          </VStack>
-                        </Box>
-
-                        {/* 결제 정보 */}
-                        <Box>
-                          <Text fontSize="md" fontWeight="semibold" mb={2}>
-                            결제 정보
-                          </Text>
-                          <VStack align="stretch" gap={1} fontSize="sm">
-                            <Flex justify="space-between">
-                              <Text color="gray.600">결제 ID:</Text>
-                              <Text>{payment.paymentId}</Text>
-                            </Flex>
-                            <Flex justify="space-between">
-                              <Text color="gray.600">신청 ID:</Text>
-                              <Text>{payment.enrollId}</Text>
-                            </Flex>
-                            <Flex justify="space-between">
-                              <Text color="gray.600">결제일:</Text>
-                              <Text>
-                                {payment.paidAt
-                                  ? new Date(payment.paidAt).toLocaleDateString(
-                                      "ko-KR",
-                                      {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      }
-                                    )
-                                  : "-"}
-                              </Text>
-                            </Flex>
-                            <Flex justify="space-between">
-                              <Text color="gray.600">할인 유형:</Text>
-                              <Text>
-                                {getMembershipLabel(payment.membershipType)}
-                              </Text>
-                            </Flex>
-                            {payment.usesLocker && (
-                              <Flex justify="space-between">
-                                <Text color="gray.600">사물함 사용:</Text>
-                                <Badge colorPalette="blue" size="sm">
-                                  사용함
-                                </Badge>
-                              </Flex>
-                            )}
-                          </VStack>
-                        </Box>
-                      </VStack>
-                    </Box>
-                  );
-                })}
-              </Grid>
-            </Box>
-          ) : (
-            <Box textAlign="center" p={8}>
-              <Text>결제 내역이 없습니다.</Text>
-            </Box>
-          )}
-        </Tabs.Content>
       </Tabs.Root>
-
-      {/* KISPG 결제창 - 기존 강의 신청 페이지와 동일한 방식 */}
-      {currentPaymentData && currentPaymentEnrollId && (
-        <KISPGPaymentFrame
-          ref={paymentFrameRef}
-          paymentData={currentPaymentData as any}
-          enrollId={currentPaymentEnrollId}
-          onPaymentComplete={async (success, data) => {
-            if (success) {
-              toaster.create({
-                title: "결제 완료",
-                description: "결제가 성공적으로 완료되었습니다!",
-                type: "success",
-                duration: 3000,
-              });
-
-              // 🎯 결제 완료 후 데이터 리프레시 (강제 리프레시)
-              await refreshEnrollmentData();
-              await refreshPaymentData();
-
-              // 신청정보 탭으로 이동 (URL도 업데이트)
-              handleTabChange("수영장_신청정보");
-            } else {
-              toaster.create({
-                title: "결제 실패",
-                description: data?.message || "결제 중 오류가 발생했습니다.",
-                type: "error",
-                duration: 5000,
-              });
-            }
-
-            // 결제 데이터 초기화
-            setCurrentPaymentData(null);
-            setCurrentPaymentEnrollId(null);
-          }}
-          onPaymentClose={() => {
-            // 결제 데이터 초기화
-            setCurrentPaymentData(null);
-            setCurrentPaymentEnrollId(null);
-
-            toaster.create({
-              title: "결제 창 닫기",
-              description: "결제가 취소되었습니다.",
-              type: "info",
-              duration: 2000,
-            });
-          }}
-        />
-      )}
-
-      <Dialog.Root
-        open={isCancelDialogOpen}
-        onOpenChange={(open) => !open && setIsCancelDialogOpen(false)}
-      >
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content maxW="sm">
-              <Dialog.Header>
-                <Dialog.Title>강습 취소 확인</Dialog.Title>
-                <Dialog.CloseTrigger asChild>
-                  <CloseButton
-                    onClick={() => setIsCancelDialogOpen(false)}
-                    position="absolute"
-                    top="2"
-                    right="2"
-                  />
-                </Dialog.CloseTrigger>
-              </Dialog.Header>
-              <Dialog.Body>
-                <Text>정말로 이 강습의 취소를 요청하시겠습니까?</Text>
-                <Text fontSize="sm" color="gray.500" mt={2}>
-                  취소 요청 후에는 되돌릴 수 없습니다.
-                </Text>
-              </Dialog.Body>
-              <Dialog.Footer mt={4}>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCancelDialogOpen(false)}
-                  mr={3}
-                >
-                  닫기
-                </Button>
-                <Button colorPalette="red" onClick={executeDialogCancellation}>
-                  취소 요청
-                </Button>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
     </Container>
   );
 }

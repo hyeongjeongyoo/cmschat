@@ -50,4 +50,4 @@ public class CustomUserDetails implements UserDetails {
     public boolean isEnabled() {
         return "active".equalsIgnoreCase(user.getStatus());
     }
-} 
+}
