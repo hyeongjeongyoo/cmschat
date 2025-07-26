@@ -5,13 +5,11 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
-import { PopupManager } from "@/components/common/PopupManager";
 import MainSection from "@/components/main/MainSection";
 
 export default function Home() {
   return (
     <>
-      <PopupManager />
       <Global
         styles={{
           "@font-face": {

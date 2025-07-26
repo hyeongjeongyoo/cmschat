@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 // Merged custom exception imports
-import cms.template.exception.TemplateNotFoundException;
-import cms.template.exception.CannotDeleteFixedTemplateException;
 import cms.common.exception.DuplicateDiException;
 import cms.common.exception.DuplicateEmailException;
 import cms.common.exception.DuplicateUsernameException;
@@ -238,34 +236,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                 ErrorCode.INVALID_INPUT_VALUE.getCode());
                 errorResponse.setValidationErrors(errors);
                 return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-        }
-
-        @ExceptionHandler(TemplateNotFoundException.class)
-        public ResponseEntity<ErrorResponse> handleTemplateNotFoundException(TemplateNotFoundException ex,
-                        WebRequest request) {
-                log.warn("Template Not Found: {}. URI: {}", ex.getMessage(), request.getDescription(false));
-                ErrorCode ec = ErrorCode.TEMPLATE_NOT_FOUND; // Assuming this error code exists
-                ErrorResponse errorResponse = new ErrorResponse(
-                                ec.getHttpStatus().value(),
-                                ec.getHttpStatus().getReasonPhrase(),
-                                ex.getMessage(),
-                                request.getDescription(false).replace("uri=", ""),
-                                ec.getCode());
-                return new ResponseEntity<>(errorResponse, ec.getHttpStatus());
-        }
-
-        @ExceptionHandler(CannotDeleteFixedTemplateException.class)
-        public ResponseEntity<ErrorResponse> handleCannotDeleteFixedTemplateException(
-                        CannotDeleteFixedTemplateException ex, WebRequest request) {
-                log.warn("Cannot Delete Fixed Template: {}. URI: {}", ex.getMessage(), request.getDescription(false));
-                ErrorCode ec = ErrorCode.INVALID_REQUEST; // Using a generic code as a fallback
-                ErrorResponse errorResponse = new ErrorResponse(
-                                ec.getHttpStatus().value(),
-                                ec.getHttpStatus().getReasonPhrase(),
-                                ex.getMessage(),
-                                request.getDescription(false).replace("uri=", ""),
-                                ec.getCode());
-                return new ResponseEntity<>(errorResponse, ec.getHttpStatus());
         }
 
         @ExceptionHandler(DuplicateDiException.class)

@@ -1,7 +1,5 @@
 import { Box, Heading } from "@chakra-ui/react";
 import { MainHeroSection } from "./component/MainHeroSection";
-import { ApplySection } from "./component/ApplySection";
-import { NoticeSection } from "./component/NoticeSection";
 import { MarqueeSection } from "./component/MarqueeSection";
 import { useQuery } from "@tanstack/react-query";
 import { contentApi, contentKeys } from "@/lib/api/content";
@@ -41,9 +39,6 @@ const MainSection = () => {
       </Heading>
       <MainHeroSection data={[contents[1], contents[2], contents[3]]} />
       <MarqueeSection data={contents[4]} />
-      <NoticeSection data={contents[5]} />
-      <ApplySection />
-      {/* <EstimateSection /> */}
     </Box>
   );
 };

@@ -26,7 +26,7 @@ export function StatisticsSection() {
   );
 
   const [data, setData] = useState<ChartData[]>([]);
-  const [_, setTotalCount] = useState(0);
+  const [, setTotalCount] = useState(0);
 
   useEffect(() => {
     const newData = Array.from({ length: 24 }, (_, i) => ({
@@ -35,7 +35,7 @@ export function StatisticsSection() {
     }));
     setData(newData);
     setTotalCount(newData.reduce((sum, item) => sum + item.value, 0));
-  }, [_]);
+  }, []);
 
   const chartOptions = useMemo<AgCartesianChartOptions>(
     () => ({
