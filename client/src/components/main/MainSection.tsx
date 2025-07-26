@@ -42,7 +42,7 @@ const MainSection = () => {
       <MainHeroSection data={[contents[1], contents[2], contents[3]]} />
       <MarqueeSection data={contents[4]} />
       <NoticeSection data={contents[5]} />
-      <ApplySection data={contents[6]} />
+      <ApplySection />
       {/* <EstimateSection /> */}
     </Box>
   );

@@ -69,7 +69,6 @@ interface ApiError extends Error {
 
 // --- API Base URL ---
 const MYPAGE_API_BASE = "/mypage";
-const PUBLIC_API_BASE_LOCKERS = "/lockers";
 
 // --- API Object ---
 export const mypageApi = {
@@ -111,119 +110,6 @@ export const mypageApi = {
       await privateApi.post<void>(`${MYPAGE_API_BASE}/password/temp`, data);
     }
   ),
-
-  // 3.3 수영장 신청 & 결제 (Enroll)
-  getEnrollments: withAuthRedirect(
-    async (): Promise<{ content: MypageEnrollDto[] }> => {
-      const response = await privateApi.get<{ content: MypageEnrollDto[] }>(
-        `${MYPAGE_API_BASE}/enroll`
-      );
-      return response.data;
-    }
-  ),
-  getEnrollmentById: withAuthRedirect(
-    async (id: number): Promise<MypageEnrollDto> => {
-      const response = await privateApi.get<MypageEnrollDto>(
-        `${MYPAGE_API_BASE}/enroll/${id}`
-      );
-      return response.data;
-    }
-  ),
-
-  /**
-   * @deprecated The checkout flow is now handled by the KISPG payment page.
-   * See swimmingPaymentService.enrollLesson and the /payment/process page.
-   */
-  checkoutEnrollment: async (): Promise<never> => {
-    console.warn("mypageApi.checkoutEnrollment is deprecated.");
-    return Promise.reject(
-      new Error(
-        "mypageApi.checkoutEnrollment is deprecated and should not be called."
-      )
-    );
-  },
-
-  /**
-   * @deprecated Payment is now handled by the KISPG payment page flow.
-   */
-  payEnrollment: async (): Promise<never> => {
-    console.warn("mypageApi.payEnrollment is deprecated.");
-    return Promise.reject(
-      new Error(
-        "mypageApi.payEnrollment is deprecated and should not be called."
-      )
-    );
-  },
-
-  cancelEnrollment: withAuthRedirect(
-    async (id: number, reason?: string): Promise<void> => {
-      await privateApi.patch<void>(`${MYPAGE_API_BASE}/enroll/${id}/cancel`, {
-        reason,
-      });
-    }
-  ),
-
-  /**
-   * @description 재수강 신청을 하고 결제 페이지 정보를 받아옵니다. (신규 재수강 정책)
-   */
-  requestRenewal: withAuthRedirect(
-    async (
-      data: MypageRenewalRequestDto
-    ): Promise<MypageRenewalResponseDto> => {
-      const response = await privateApi.post<MypageRenewalResponseDto>(
-        `${MYPAGE_API_BASE}/renewal`,
-        data
-      );
-      return response.data;
-    }
-  ),
-
-  /**
-   * @deprecated Renewal is now handled by swimmingPaymentService.renewalLesson to align with KISPG flow.
-   * That service returns EnrollInitiationResponseDto.
-   */
-  renewEnrollment: async (data: MypageRenewalRequestDto): Promise<never> => {
-    console.warn(
-      "mypageApi.renewEnrollment is deprecated. Use swimmingPaymentService.renewalLesson instead."
-    );
-    return Promise.reject(
-      new Error(
-        "mypageApi.renewEnrollment is deprecated and should not be called."
-      )
-    );
-  },
-
-  // 3.4 결제 내역 (Payment)
-  getPayments: withAuthRedirect(
-    async (): Promise<{ content: MypagePaymentDto[] }> => {
-      const response = await privateApi.get<{ content: MypagePaymentDto[] }>(
-        `${MYPAGE_API_BASE}/payment`
-      );
-      return response.data;
-    }
-  ),
-  requestPaymentCancel: async (
-    paymentId: number,
-    reason?: string
-  ): Promise<void> => {
-    const payload = reason ? { reason } : {};
-    await privateApi.post<void>(
-      `${MYPAGE_API_BASE}/payment/${paymentId}/cancel`,
-      payload
-    );
-  },
-
-  // New function for locker availability status (as per swim-user.md)
-  getLockerAvailabilityStatus: async (
-    gender: string
-  ): Promise<LockerAvailabilityDto> => {
-    // This specific API endpoint for public locker availability might not need `withAuthRedirect`
-    // as it can be used on public lesson listing pages before login.
-    const response = await privateApi.get<LockerAvailabilityDto>(
-      `${PUBLIC_API_BASE_LOCKERS}/availability/status?gender=${gender}`
-    );
-    return response.data;
-  },
 };
 
 // Note: The spec mentions a response wrapper: { status, data, message }.

@@ -91,7 +91,7 @@ spring:
       filter:
         enabled: true
     pathmatch:
-      matching-strategy: ant_path_matcher
+      matching-strategy: ant-path-matcher
   main:
     allow-bean-definition-overriding: true
     web-application-type: servlet
@@ -99,11 +99,11 @@ spring:
   security:
     filter:
       order: 10
-  http:
-    encoding:
-      charset: UTF-8
-      force: true
-      enabled: true
+  #  http:
+  #    encoding:
+  #      charset: UTF-8
+  #      force: true
+  #      enabled: true
   session:
     timeout: 1800 # 30 minutes
     cookie:
@@ -214,32 +214,17 @@ jwt:
 app:
   api:
     base-url: ${GLOBALS_IP:http://localhost:${server.port:8080}}
-  locker:
-    fee: ${APP_LOCKER_FEE:5000}
-  enrollment:
-    lock-timeout: 30000
-    retry-attempts: 3
-    retry-delay: 1000
-    websocket:
-      enabled: true
-      heartbeat-interval: 30000
   performance:
     enable-metrics: true
     slow-query-threshold: 1000
 
 nice:
   checkplus:
-    site-code: ${NICE_CHECKPLUS_SITE_CODE} # Mandatory: Define in your .env file
-    site-password: ${NICE_CHECKPLUS_SITE_PASSWORD} # Mandatory: Define in your .env file
+    site-code: "TEMP_CODE" # Mandatory: Define in your .env file
+    site-password: "TEMP_PASSWORD" # Mandatory: Define in your .env file
     base-callback-url: ${app.api.base-url}
-    frontend-redirect-success-path: ${NICE_CHECKPLUS_FRONTEND_REDIRECT_PATH} # Default for dev, override in .env if needed
-    frontend-redirect-fail-path: ${NICE_CHECKPLUS_FRONTEND_REDIRECT_PATH} # Default for dev, override in .env if needed
-
-# KISPG Configurations
-kispg:
-  url: ${KISPG_URL}
-  mid: ${KISPG_MID}
-  merchantKey: ${KISPG_MERCHANT_KEY}
+    frontend-redirect-success-path: "/nice-auth-callback" # Default for dev, override in .env if needed
+    frontend-redirect-fail-path: "/nice-auth-callback" # Default for dev, override in .env if needed
 
 # *** 성능 모니터링 설정 ***
 management:
