@@ -13,32 +13,31 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
+
     @Override
     public void configurePathMatch(@NonNull PathMatchConfigurer configurer) {
         configurer
-            .addPathPrefix("/api/v1", c -> c.isAnnotationPresent(org.springframework.web.bind.annotation.RestController.class));
+                .addPathPrefix("/api/v1",
+                        c -> c.isAnnotationPresent(org.springframework.web.bind.annotation.RestController.class));
     }
 
     @Override
     public void configureContentNegotiation(@NonNull ContentNegotiationConfigurer configurer) {
         configurer
-            .favorParameter(false)
-            .ignoreAcceptHeader(false)
-            .useRegisteredExtensionsOnly(true);
+                .favorParameter(false)
+                .ignoreAcceptHeader(false)
+                .useRegisteredExtensionsOnly(true);
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 환경변수를 통한 CORS 설정
-        // registry.addMapping("/**")
-        //     .allowedOriginPatterns(allowedOrigins)
-        //     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-        //     .allowedHeaders("*")
-        //     .allowCredentials(true)
-        //     .exposedHeaders("Authorization")
-        //     .maxAge(3600);
+        // WebSocket 및 일반 API 요청을 위한 CORS 설정
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:3001")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .exposedHeaders("Authorization")
+                .maxAge(3600);
     }
-} 
- 
- 
- 
+}

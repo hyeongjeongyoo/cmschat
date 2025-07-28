@@ -117,7 +117,7 @@ server:
       charset: UTF-8
       force: true
       enabled: true
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8081}
 
 logging:
   level:
@@ -213,7 +213,7 @@ jwt:
 # Application specific configurations
 app:
   api:
-    base-url: ${GLOBALS_IP:http://localhost:${server.port:8080}}
+    base-url: ${GLOBALS_IP:http://localhost:${server.port:8081}}
   performance:
     enable-metrics: true
     slow-query-threshold: 1000

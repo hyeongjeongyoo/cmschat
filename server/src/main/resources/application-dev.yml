@@ -122,7 +122,7 @@ server:
       charset: UTF-8
       force: true
       enabled: true
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8081}
 
 logging:
   level:
@@ -199,7 +199,7 @@ Globals:
     Password: ${GLOBALS_TIBERO_PASSWORD:}
   cubrid:
     DriverClassName: ${GLOBALS_CUBRID_DRIVER:cubrid.jdbc.driver.CUBRIDDriver}
-    Url: ${GLOBALS_CUBRID_URL:jdbc:cubrid:127.0.0.1:33000:cms_new:::?charset=utf-8}
+    Url: ${GLOBALS_CUBRID_URL:jdbc:cubrid:127.0.0.1:3:cms_new:::?charset=utf-8}
     UserName: ${GLOBALS_CUBRID_USERNAME:}
     Password: ${GLOBALS_CUBRID_PASSWORD:}
 
@@ -226,7 +226,7 @@ jwt:
 # Application specific configurations
 app:
   api:
-    base-url: ${GLOBALS_IP:http://localhost:${server.port:8080}}
+    base-url: ${GLOBALS_IP:http://localhost:${server.port:8081}}
   performance:
     enable-metrics: true
     slow-query-threshold: 1000
@@ -263,4 +263,4 @@ management:
       prometheus:
         enabled: true
 cors:
-  allowed-origins: ${GLOBALS_ALLOW_ORIGIN:http://localhost:3000,http://127.0.0.1:3000,http://localhost:8081}
+  allowed-origins: ${GLOBALS_ALLOW_ORIGIN:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://localhost:8081}

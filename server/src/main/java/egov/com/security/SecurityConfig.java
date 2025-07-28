@@ -85,7 +85,9 @@ public class SecurityConfig {
 				"/api/v1/cms/popups/active",
 				"/api/v1/swimming/lessons/**",
 				"/api/v1/nice/checkplus/**",
-				"/api/v1/group-reservations");
+				"/api/v1/group-reservations",
+				"/api/v1/chat/**",
+				"/ws/chat/**");
 		for (String pattern : permitAllAntPatterns) {
 			matchers.add(new AntPathRequestMatcher(pattern));
 		}
