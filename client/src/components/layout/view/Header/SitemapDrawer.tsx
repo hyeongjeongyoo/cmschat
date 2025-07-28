@@ -10,18 +10,14 @@ import {
   HStack,
   Text as ChakraText,
   Icon,
-  Grid,
-  GridItem,
   IconButton,
   Button,
-  useBreakpointValue,
 } from "@chakra-ui/react";
 import Image from "next/image";
 import { memo, useState, useEffect, useCallback } from "react";
 import NextLink from "next/link";
 import { Menu } from "@/types/api";
 import {
-  Instagram,
   Globe,
   Type,
   Smile,
@@ -48,24 +44,11 @@ export const SitemapDrawer = memo(
     isOpen,
     onClose,
     menusWithLastFlag,
-    isMenuActive,
     isDark,
     width,
     height,
   }: SitemapDrawerProps) => {
     const router = useRouter();
-
-    // 모바일과 데스크톱에서 다른 푸터 텍스트 표시
-    const footerText = useBreakpointValue({
-      base: (
-        <>
-          아르피나의 특별한 순간,
-          <br />
-          SNS에서 실시간으로 확인하세요
-        </>
-      ),
-      md: "아르피나의 특별한 순간, SNS에서 실시간으로 확인하세요",
-    });
 
     const [selectedCategoryKey, setSelectedCategoryKey] = useState<
       number | null
@@ -446,48 +429,6 @@ export const SitemapDrawer = memo(
                   </Flex>
                 </Box>
               </Drawer.Body>
-
-              <Flex
-                as="footer"
-                align="center"
-                justify="center"
-                p={4}
-                borderColor={isDark ? "gray.700" : "gray.200"}
-                h="50px"
-              >
-                <Link
-                  href="https://www.instagram.com/bmc_arpina"
-                  onClick={onClose}
-                  display="flex"
-                  alignItems="center"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <HStack gap={3} align="center">
-                    <Image
-                      src="/images/icons/instagram_icon.png"
-                      alt="Instagram"
-                      width={32}
-                      height={32}
-                    />
-                    <Box
-                      style={{
-                        background:
-                          "linear-gradient(90deg, #0C8EA4 0%, #2E3192 100%)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
-                        color: "transparent",
-                      }}
-                      fontSize="sm"
-                      fontFamily="paperlogy"
-                      fontWeight="bold"
-                    >
-                      {footerText}
-                    </Box>
-                  </HStack>
-                </Link>
-              </Flex>
             </Drawer.Content>
           </Drawer.Positioner>
         </Portal>

@@ -1,8 +1,10 @@
 import "@/styles/globals.css";
 import "@/styles/fonts.css";
-import { Providers } from "./providers";
+import { Providers } from "@/app/providers";
 import { Toaster } from "@/components/ui/toaster";
 import Script from "next/script";
+import { Box } from "@chakra-ui/react";
+import { ChatWindow } from "@/components/chat/ChatWindow";
 
 export default function RootLayout({
   children,
@@ -13,22 +15,15 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <head>
         <Script
-          src="/assets/lang-config.js"
-          strategy="beforeInteractive"
-        ></Script>
-        <Script
-          src="/assets/translation.js"
-          strategy="beforeInteractive"
-        ></Script>
-        <Script
-          src="//translate.google.com/translate_a/element.js?cb=TranslateInit"
+          src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
           strategy="afterInteractive"
-        ></Script>
+        />
       </head>
       <body>
         <div id="google_translate_element" style={{ display: "none" }}></div>
         <Providers>
           {children}
+          <ChatWindow />
           <Toaster />
         </Providers>
       </body>

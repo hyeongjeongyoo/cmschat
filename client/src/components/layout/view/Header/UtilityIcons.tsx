@@ -65,16 +65,6 @@ export const UtilityIcons = ({
       display="flex"
       zIndex={1001}
     >
-      <Box display={{ base: "none", sm: "block" }}>
-        <Image
-          src="/images/logo/부산도시공사_logo.png"
-          width={120}
-          height={40}
-          alt="부산도시공사 로고"
-          style={{ cursor: "pointer" }}
-          onClick={() => window.open("https://www.bmc.busan.kr/", "_blank")}
-        />
-      </Box>
 
       {/* User Menu */}
       <Menu.Root>

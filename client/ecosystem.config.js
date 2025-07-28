@@ -10,7 +10,7 @@
         cwd: '/root/handy-cms-client', // 애플리케이션 경로 (절대 경로)
         env: {
           NODE_ENV: 'production',
-          PORT: 3000,       // Next.js 앱이 실행될 포트 (Nginx가 이 포트로 프록시)
+          PORT: 3001,       // Next.js 앱이 실행될 포트 (Nginx가 이 포트로 프록시)
                              // package.json의 start 스크립트가 "NODE_ENV=production next start" 이므로
                              // PORT 환경변수를 통해 포트 지정 가능
         },

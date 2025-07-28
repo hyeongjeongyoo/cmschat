@@ -22,6 +22,8 @@ interface GridSectionProps {
     y: number;
     w: number;
     h: number;
+    minW?: number;
+    minH?: number;
     isStatic?: boolean;
     isHeader?: boolean;
     title?: string;
@@ -76,14 +78,18 @@ export function GridSection({
   const childrenArray = React.Children.toArray(children);
 
   const [layouts, setLayouts] = useState<Layouts>({
-    lg: initialLayout.map(({ id, x, y, w, h, isStatic = false }) => ({
-      i: id,
-      x,
-      y,
-      w,
-      h,
-      static: isStatic || id === "header",
-    })),
+    lg: initialLayout.map(
+      ({ id, x, y, w, h, minW, minH, isStatic = false }) => ({
+        i: id,
+        x,
+        y,
+        w,
+        h,
+        minW,
+        minH,
+        static: isStatic,
+      })
+    ),
   });
 
   const onLayoutChange = (currentLayout: Layout[], allLayouts: Layouts) => {
@@ -133,11 +139,7 @@ export function GridSection({
         layouts={layouts}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={
-          initialLayout.some((item) => item.id === "header" && item.isHeader)
-            ? 60
-            : 100
-        }
+        rowHeight={100}
         onLayoutChange={onLayoutChange}
         isDraggable
         isResizable
@@ -159,18 +161,17 @@ export function GridSection({
               shadow={colors.shadow.sm}
               transition="all 0.3s ease-in-out"
               _hover={{
-                shadow: isStatic ? colors.shadow.sm : colors.shadow.md,
-                borderColor: isStatic ? borderColor : hoverBorderColor,
-                bg: isStatic ? bgColor : hoverBg,
-                transform: isStatic ? "none" : "translateY(-2px)",
+                shadow: colors.shadow.md,
+                borderColor: hoverBorderColor,
+                bg: hoverBg,
+                transform: "translateY(-2px)",
               }}
               position="relative"
               backdropFilter="blur(8px)"
               overflow="hidden"
-              className={isStatic ? "static-section" : ""}
             >
               {/* Section Header */}
-              {(layout.title || !isStatic) && (
+              {layout.title && (
                 <Flex
                   p={3}
                   borderBottom="1px solid"
@@ -178,77 +179,71 @@ export function GridSection({
                   justify="space-between"
                   align="center"
                 >
-                  {layout.title && (
-                    <Box>
-                      <Flex align="center" gap={2}>
-                        <Text
-                          fontSize="sm"
-                          fontWeight="600"
-                          color={textColor}
-                          letterSpacing="tight"
-                        >
-                          {layout.title}
-                        </Text>
-                        {layout.subtitle && !isHeaderSection && (
-                          <Tooltip
-                            content={layout.subtitle}
-                            positioning={{ placement: "bottom-start" }}
-                            openDelay={50}
-                            closeDelay={200}
-                            contentProps={{
-                              css: {
-                                bg: isDark ? colors.gradient.primary : "white",
-                                color: isDark ? "white" : "gray.800",
-                                borderColor: isDark ? "gray.700" : "gray.200",
-                                boxShadow: colors.shadow.md,
-                                p: 2,
-                                fontSize: "xs",
-                                maxW: "240px",
-                              },
-                            }}
-                          >
-                            <Box
-                              as="span"
-                              color={colors.primary.default}
-                              cursor="help"
-                              transition="0.3s ease-in-out"
-                              _hover={{ color: colors.primary.dark }}
-                            >
-                              ⓘ
-                            </Box>
-                          </Tooltip>
-                        )}
-                      </Flex>
-                    </Box>
-                  )}
-                  <Flex align="center" gap={2}>
-                    {!isStatic && (
-                      <Button
-                        className="drag-handle"
-                        aria-label="Move section"
-                        size="sm"
-                        variant="ghost"
-                        opacity="0.4"
-                        cursor="move"
-                        color={handleColor}
-                        bg="transparent"
-                        minW="auto"
-                        h="auto"
-                        p="1"
-                        _hover={{
-                          opacity: 1,
-                          bg: "transparent",
-                          color: handleHoverColor,
-                          transform: "scale(1.1)",
-                        }}
-                        _active={{
-                          transform: "scale(0.95)",
-                        }}
+                  <Box>
+                    <Flex align="center" gap={2}>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="600"
+                        color={textColor}
+                        letterSpacing="tight"
                       >
-                        <LuGrip size={16} />
-                      </Button>
-                    )}
-                  </Flex>
+                        {layout.title}
+                      </Text>
+                      {layout.subtitle && !isHeaderSection && (
+                        <Tooltip
+                          content={layout.subtitle}
+                          positioning={{ placement: "bottom-start" }}
+                          openDelay={50}
+                          closeDelay={200}
+                          contentProps={{
+                            css: {
+                              bg: isDark ? colors.gradient.primary : "white",
+                              color: isDark ? "white" : "gray.800",
+                              borderColor: isDark ? "gray.700" : "gray.200",
+                              boxShadow: colors.shadow.md,
+                              p: 2,
+                              fontSize: "xs",
+                              maxW: "240px",
+                            },
+                          }}
+                        >
+                          <Box
+                            as="span"
+                            color={colors.primary.default}
+                            cursor="help"
+                            transition="0.3s ease-in-out"
+                            _hover={{ color: colors.primary.dark }}
+                          >
+                            ⓘ
+                          </Box>
+                        </Tooltip>
+                      )}
+                    </Flex>
+                  </Box>
+                  <Button
+                    className="drag-handle"
+                    aria-label="Move section"
+                    size="sm"
+                    variant="ghost"
+                    opacity="0.4"
+                    cursor="move"
+                    color={handleColor}
+                    bg="transparent"
+                    minW="auto"
+                    h="auto"
+                    p="1"
+                    _hover={{
+                      opacity: 1,
+                      bg: "transparent",
+                      color: handleHoverColor,
+                      transform: "scale(1.1)",
+                    }}
+                    _active={{
+                      transform: "scale(0.95)",
+                    }}
+                  >
+                    <LuGrip size={16} />
+                  </Button>
                 </Flex>
               )}
 
@@ -280,39 +275,22 @@ export function GridSection({
                 {childrenArray[index]}
               </Box>
 
-              {/* Section Footer with Resize Handle */}
-              {!isStatic && (
-                <Flex h="30px" borderTop="1px solid" borderColor={borderColor}>
-                  <Button
-                    aria-label="Resize section"
-                    size="sm"
-                    variant="ghost"
-                    opacity="0.4"
-                    color={handleColor}
-                    bg="transparent"
-                    minW="auto"
-                    h="auto"
-                    p="1"
-                    cursor="se-resize"
-                    className="react-resizable-handle react-resizable-handle-se"
-                    _hover={{
-                      opacity: 1,
-                      bg: "transparent",
-                      color: handleHoverColor,
-                    }}
-                    borderRadius="full"
-                    width="24px"
-                    height="24px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Box transform="scaleX(-1)">
-                      <LuMaximize2 size={16} />
-                    </Box>
-                  </Button>
-                </Flex>
-              )}
+              {/* Resize Handle */}
+              <Box
+                position="absolute"
+                right={0}
+                bottom={0}
+                width="20px"
+                height="20px"
+                className="react-resizable-handle react-resizable-handle-se"
+                cursor="se-resize"
+                opacity={0.4}
+                _hover={{ opacity: 1 }}
+              >
+                <Box transform="scaleX(-1)">
+                  <LuMaximize2 size={16} />
+                </Box>
+              </Box>
             </Box>
           );
         })}

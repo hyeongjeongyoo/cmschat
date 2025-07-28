@@ -7,15 +7,22 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 const nextConfig = {
   reactStrictMode: true,
-  /* config options here */
   experimental: {
     serverActions: {},
     optimizePackageImports: ["@chakra-ui/react"],
   },
   images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8081",
+        pathname: "/api/file/**",
+      },
+    ],
     domains: ["localhost"],
   },
-  webpack: (config, { isServer /*, webpack */ }) => {
+  webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
